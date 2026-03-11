@@ -1,6 +1,6 @@
 import { useParams } from "react-router-dom";
-import { useEffect } from "react";
-import { usePostBySlug, useRecordView } from "@/hooks/useBlog";
+import { useEffect, useRef } from "react";
+import { usePostBySlug, useRecordView, useRecordVideoPlay } from "@/hooks/useBlog";
 import BlogHeader from "@/components/BlogHeader";
 import CommentSection from "@/components/CommentSection";
 import LikeButton from "@/components/LikeButton";
@@ -35,13 +35,39 @@ export default function PostPage() {
   const { slug } = useParams<{ slug: string }>();
   const { data: post, isLoading } = usePostBySlug(slug || "");
   const recordView = useRecordView();
+  const recordVideoPlay = useRecordVideoPlay();
+  const videoPlayRecorded = useRef(false);
 
   useEffect(() => {
     if (post?.id) {
       recordView.mutate(post.id);
+      videoPlayRecorded.current = false;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [post?.id]);
+
+  useEffect(() => {
+    if (!post?.youtube_url) return;
+    const handleMessage = (event: MessageEvent) => {
+      const allowed = ["https://www.youtube-nocookie.com", "https://www.youtube.com"];
+      if (!allowed.includes(event.origin)) return;
+      try {
+        const data = typeof event.data === "string" ? JSON.parse(event.data) : event.data;
+        // YT playerState 1 = playing
+        if (data?.event === "infoDelivery" && data?.info?.playerState === 1) {
+          if (!videoPlayRecorded.current && post?.id) {
+            videoPlayRecorded.current = true;
+            recordVideoPlay.mutate(post.id);
+          }
+        }
+      } catch {
+        // ignore parse errors
+      }
+    };
+    window.addEventListener("message", handleMessage);
+    return () => window.removeEventListener("message", handleMessage);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [post?.id, post?.youtube_url]);
 
   if (isLoading) {
     return (
@@ -114,7 +140,7 @@ export default function PostPage() {
                 <div className="mb-6">
                   <div className="rounded-lg overflow-hidden aspect-video">
                     <iframe
-                      src={`${getYouTubeEmbedUrl(post.youtube_url)!}?rel=0&modestbranding=1`}
+                      src={`${getYouTubeEmbedUrl(post.youtube_url)!}?rel=0&modestbranding=1&enablejsapi=1`}
                       title={post.title}
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                       referrerPolicy="strict-origin-when-cross-origin"

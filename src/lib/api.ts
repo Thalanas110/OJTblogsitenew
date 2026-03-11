@@ -188,7 +188,67 @@ export async function togglePinPost(id: string, isPinned: boolean) {
 // ─── Views ───
 export async function recordView(postId: string) {
   const ip = await getClientIp();
-  await supabase.from("post_views").insert({ post_id: postId, ip_address: ip });
+  await supabase.from("post_views").insert({
+    post_id: postId,
+    ip_address: ip,
+    user_agent: navigator.userAgent,
+  });
+}
+
+export async function recordVideoPlay(postId: string) {
+  const ip = await getClientIp();
+  await supabase.from("video_plays").insert({
+    post_id: postId,
+    ip_address: ip,
+    user_agent: navigator.userAgent,
+  });
+}
+
+export async function fetchVideoPlayCount(postId: string): Promise<number> {
+  const { data, error } = await supabase
+    .rpc("get_post_video_play_count", { p_post_id: postId } as never);
+  if (error) throw error;
+  return (data as number) || 0;
+}
+
+export async function fetchHourlyViewDistribution(postId: string): Promise<{ hour: string; count: number }[]> {
+  const { data, error } = await supabase
+    .from("post_views")
+    .select("created_at")
+    .eq("post_id", postId);
+  if (error) throw error;
+
+  const grouped: Record<number, number> = {};
+  (data || []).forEach((v: { created_at: string }) => {
+    const h = new Date(v.created_at).getHours();
+    grouped[h] = (grouped[h] || 0) + 1;
+  });
+
+  return Array.from({ length: 24 }, (_, i) => ({
+    hour: `${i}:00`,
+    count: grouped[i] || 0,
+  }));
+}
+
+export async function fetchPostViewsDetails(postId: string): Promise<{ created_at: string; user_agent: string | null; ip_address: string }[]> {
+  const { data, error } = await supabase
+    .from("post_views")
+    .select("created_at, user_agent, ip_address")
+    .eq("post_id", postId)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return (data || []) as { created_at: string; user_agent: string | null; ip_address: string }[];
+}
+
+export async function fetchRecentVideoPlays(postId: string): Promise<{ id: string; created_at: string; user_agent: string | null; ip_address: string }[]> {
+  const { data, error } = await supabase
+    .from("video_plays")
+    .select("id, created_at, user_agent, ip_address")
+    .eq("post_id", postId)
+    .order("created_at", { ascending: false })
+    .limit(30);
+  if (error) throw error;
+  return (data || []) as { id: string; created_at: string; user_agent: string | null; ip_address: string }[];
 }
 
 // ─── Comments ───

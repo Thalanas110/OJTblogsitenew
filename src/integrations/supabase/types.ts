@@ -88,22 +88,57 @@ export type Database = {
           id: string
           ip_address: string
           post_id: string
+          user_agent: string | null
         }
         Insert: {
           created_at?: string
           id?: string
           ip_address: string
           post_id: string
+          user_agent?: string | null
         }
         Update: {
           created_at?: string
           id?: string
           ip_address?: string
           post_id?: string
+          user_agent?: string | null
         }
         Relationships: [
           {
             foreignKeyName: "post_views_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      video_plays: {
+        Row: {
+          created_at: string
+          id: string
+          ip_address: string
+          post_id: string
+          user_agent: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          ip_address?: string
+          post_id: string
+          user_agent?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          ip_address?: string
+          post_id?: string
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "video_plays_post_id_fkey"
             columns: ["post_id"]
             isOneToOne: false
             referencedRelation: "posts"
@@ -194,6 +229,10 @@ export type Database = {
     }
     Functions: {
       generate_slug: { Args: { title: string }; Returns: string }
+      get_post_video_play_count: {
+        Args: { p_post_id: string }
+        Returns: number
+      }
       get_post_view_counts: {
         Args: { post_ids: string[] }
         Returns: {

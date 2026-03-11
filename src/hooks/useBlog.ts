@@ -4,7 +4,10 @@ import {
   createPost, updatePost, deletePost, togglePinPost,
   fetchComments, fetchAllComments, addComment, deleteComment, toggleCommentApproval,
   fetchReactionCount, hasUserReacted, toggleReaction,
-  recordView, fetchActivityLogs, fetchPostViewsByDate, fetchAllViewsByDate,
+  recordView, recordVideoPlay, fetchActivityLogs,
+  fetchPostViewsByDate, fetchAllViewsByDate,
+  fetchVideoPlayCount, fetchHourlyViewDistribution,
+  fetchPostViewsDetails, fetchRecentVideoPlays,
 } from "@/lib/api";
 
 export function usePosts() {
@@ -121,4 +124,31 @@ export function usePostViewsByDate(postId: string) {
 
 export function useAllViewsByDate() {
   return useQuery({ queryKey: ["all-views-by-date"], queryFn: fetchAllViewsByDate });
+}
+
+export function useVideoPlayCount(postId: string) {
+  return useQuery({ queryKey: ["video-play-count", postId], queryFn: () => fetchVideoPlayCount(postId), enabled: !!postId });
+}
+
+export function useHourlyViewDistribution(postId: string) {
+  return useQuery({ queryKey: ["hourly-views", postId], queryFn: () => fetchHourlyViewDistribution(postId), enabled: !!postId });
+}
+
+export function usePostViewsDetails(postId: string) {
+  return useQuery({ queryKey: ["post-views-details", postId], queryFn: () => fetchPostViewsDetails(postId), enabled: !!postId });
+}
+
+export function useRecentVideoPlays(postId: string) {
+  return useQuery({ queryKey: ["recent-video-plays", postId], queryFn: () => fetchRecentVideoPlays(postId), enabled: !!postId });
+}
+
+export function useRecordVideoPlay() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: recordVideoPlay,
+    onSuccess: (_d, postId) => {
+      qc.invalidateQueries({ queryKey: ["video-play-count", postId] });
+      qc.invalidateQueries({ queryKey: ["recent-video-plays", postId] });
+    },
+  });
 }
