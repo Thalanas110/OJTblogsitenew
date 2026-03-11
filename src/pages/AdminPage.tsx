@@ -69,7 +69,8 @@ export default function AdminPage() {
   );
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-screen blog-bg flex flex-col">
+      <div className="min-h-screen blog-bg-overlay flex flex-col">
       {/* Top bar */}
       <header className="bg-card border-b border-border sticky top-0 z-50">
         <div className="px-4 py-3 flex items-center gap-3">
@@ -87,13 +88,6 @@ export default function AdminPage() {
               For Prof. Loudel M. Manaloto, MSCS
             </span>
           </Link>
-          {/* Desktop logout in header */}
-          <button
-            onClick={handleLogout}
-            className="hidden md:flex ml-auto items-center gap-2 px-3 py-2 rounded-md hover:bg-accent transition-colors text-muted-foreground text-sm font-mono"
-          >
-            <LogOut size={16} /> Logout
-          </button>
         </div>
       </header>
 
@@ -135,6 +129,7 @@ export default function AdminPage() {
           {activeTab === "comments" && <AdminComments />}
           {activeTab === "activity" && <AdminActivityLogs />}
         </main>
+      </div>
       </div>
     </div>
   );
