@@ -1,24 +1,35 @@
 import { Link } from "react-router-dom";
-import { Eye, MessageSquare, Youtube } from "lucide-react";
+import { Eye, MessageSquare, PlayCircle } from "lucide-react";
 import type { PostWithStats } from "@/types/blog";
+
+function getYouTubeId(url: string): string | null {
+  try {
+    const u = new URL(url);
+    if (u.hostname === "youtu.be") return u.pathname.slice(1).split("?")[0] || null;
+    if (u.hostname === "www.youtube.com" || u.hostname === "youtube.com") {
+      if (u.pathname === "/watch") return u.searchParams.get("v");
+      const embedMatch = u.pathname.match(/^\/embed\/([^/?]+)/);
+      if (embedMatch) return embedMatch[1];
+    }
+  } catch { /* invalid URL */ }
+  return null;
+}
 
 interface PostCardProps {
   post: PostWithStats;
 }
 
 export default function PostCard({ post }: PostCardProps) {
+  const youtubeId = post.youtube_url ? getYouTubeId(post.youtube_url) : null;
+  const thumbnailUrl = youtubeId ? `https://img.youtube.com/vi/${youtubeId}/hqdefault.jpg` : null;
+
   return (
     <div className="blog-card flex flex-col">
       {/* Title section */}
       <div className="p-4 pb-2">
-        <div className="flex items-start gap-2">
-          {post.youtube_url && (
-            <Youtube size={16} className="text-red-500 flex-shrink-0 mt-1" />
-          )}
-          <h2 className="font-mono text-base md:text-lg font-bold text-card-foreground leading-tight">
-            {post.title}
-          </h2>
-        </div>
+        <h2 className="font-mono text-base md:text-lg font-bold text-card-foreground leading-tight">
+          {post.title}
+        </h2>
         <div className="flex items-center justify-between mt-2">
           <span className="text-xs font-mono text-muted-foreground">
             {new Date(post.created_at).toLocaleDateString("en-US", {
@@ -38,17 +49,26 @@ export default function PostCard({ post }: PostCardProps) {
         </div>
       </div>
 
-      {/* Cover image */}
-      {post.cover_image_url && (
+      {/* YouTube thumbnail with play button overlay, or plain cover image */}
+      {(thumbnailUrl || post.cover_image_url) && (
         <div className="px-4">
-          <div className="rounded-md overflow-hidden aspect-video bg-muted">
-            <img
-              src={post.cover_image_url}
-              alt={post.title}
-              className="w-full h-full object-cover"
-              loading="lazy"
-            />
-          </div>
+          <Link to={`/post/${post.slug}`} className="block">
+            <div className="rounded-md overflow-hidden aspect-video bg-muted relative group">
+              <img
+                src={thumbnailUrl ?? post.cover_image_url!}
+                alt={post.title}
+                className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
+                loading="lazy"
+              />
+              {thumbnailUrl && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="bg-black/60 rounded-full p-2 group-hover:bg-red-600 transition-colors duration-200">
+                    <PlayCircle size={40} className="text-white" fill="white" />
+                  </div>
+                </div>
+              )}
+            </div>
+          </Link>
         </div>
       )}
 
