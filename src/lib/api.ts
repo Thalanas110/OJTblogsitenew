@@ -337,6 +337,26 @@ export function onAuthChange(callback: (session: unknown) => void) {
   });
 }
 
+// ─── All Views by date (last 30 days) ───
+export async function fetchAllViewsByDate(): Promise<{ date: string; count: number }[]> {
+  const since = new Date();
+  since.setDate(since.getDate() - 29);
+  const { data, error } = await supabase
+    .from("post_views")
+    .select("created_at")
+    .gte("created_at", since.toISOString())
+    .order("created_at", { ascending: true });
+  if (error) throw error;
+
+  const grouped: Record<string, number> = {};
+  (data || []).forEach((v: { created_at: string }) => {
+    const date = v.created_at.split("T")[0];
+    grouped[date] = (grouped[date] || 0) + 1;
+  });
+
+  return Object.entries(grouped).map(([date, count]) => ({ date, count }));
+}
+
 // ─── Post Views by date ───
 export async function fetchPostViewsByDate(postId: string): Promise<{ date: string; count: number }[]> {
   const { data, error } = await supabase

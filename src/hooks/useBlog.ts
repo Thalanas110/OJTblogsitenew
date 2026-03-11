@@ -4,7 +4,7 @@ import {
   createPost, updatePost, deletePost, togglePinPost,
   fetchComments, fetchAllComments, addComment, deleteComment, toggleCommentApproval,
   fetchReactionCount, hasUserReacted, toggleReaction,
-  recordView, fetchActivityLogs, fetchPostViewsByDate,
+  recordView, fetchActivityLogs, fetchPostViewsByDate, fetchAllViewsByDate,
 } from "@/lib/api";
 
 export function usePosts() {
@@ -117,4 +117,8 @@ export function useActivityLogs() {
 
 export function usePostViewsByDate(postId: string) {
   return useQuery({ queryKey: ["post-views-date", postId], queryFn: () => fetchPostViewsByDate(postId), enabled: !!postId });
+}
+
+export function useAllViewsByDate() {
+  return useQuery({ queryKey: ["all-views-by-date"], queryFn: fetchAllViewsByDate });
 }
