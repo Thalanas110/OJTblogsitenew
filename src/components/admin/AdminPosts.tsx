@@ -5,8 +5,10 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Pin, PinOff, Trash2, Edit, Plus, Eye, MessageSquare, Heart, BarChart3 } from "lucide-react";
+import { Pin, PinOff, Trash2, Edit, Plus, Eye, MessageSquare, Heart, BarChart3, ChevronLeft, ChevronRight } from "lucide-react";
 import PostDashboard from "@/components/admin/PostDashboard";
+
+const PAGE_SIZE = 13;
 
 export default function AdminPosts() {
   const { data: posts, isLoading } = useAllPosts();
@@ -18,6 +20,7 @@ export default function AdminPosts() {
   const [showCreate, setShowCreate] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [viewDashboard, setViewDashboard] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
   const [form, setForm] = useState({ title: "", content: "", excerpt: "", cover_image_url: "", youtube_url: "", is_published: true });
 
   const resetForm = () => {
@@ -51,6 +54,10 @@ export default function AdminPosts() {
   if (viewDashboard) {
     return <PostDashboard postId={viewDashboard} onBack={() => setViewDashboard(null)} />;
   }
+
+  const total = posts?.length ?? 0;
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const paginated = posts?.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE) ?? [];
 
   return (
     <div className="space-y-4">
@@ -89,7 +96,7 @@ export default function AdminPosts() {
         <p className="text-muted-foreground font-mono text-sm">Loading...</p>
       ) : (
         <div className="space-y-2">
-          {posts?.map((p) => (
+          {paginated.map((p) => (
             <div key={p.id} className="bg-card rounded-lg border border-border p-4 flex flex-col md:flex-row md:items-center gap-3">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
@@ -120,6 +127,22 @@ export default function AdminPosts() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-xs text-muted-foreground font-mono">
+            Page {page} of {totalPages} &mdash; {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, total)} of {total}
+          </span>
+          <div className="flex items-center gap-1">
+            <Button variant="outline" size="icon" className="h-7 w-7" disabled={page === 1} onClick={() => setPage((p) => p - 1)}>
+              <ChevronLeft className="w-4 h-4" />
+            </Button>
+            <Button variant="outline" size="icon" className="h-7 w-7" disabled={page === totalPages} onClick={() => setPage((p) => p + 1)}>
+              <ChevronRight className="w-4 h-4" />
+            </Button>
+          </div>
         </div>
       )}
     </div>

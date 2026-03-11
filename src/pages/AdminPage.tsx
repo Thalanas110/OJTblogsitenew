@@ -72,7 +72,7 @@ export default function AdminPage() {
     <div className="min-h-screen blog-bg flex flex-col">
       <div className="min-h-screen blog-bg-overlay flex flex-col">
       {/* Top bar */}
-      <header className="bg-card border-b border-border sticky top-0 z-50">
+      <header className="bg-card border-b border-border sticky top-0 z-50 h-14">
         <div className="px-4 py-3 flex items-center gap-3">
           {/* Mobile hamburger */}
           <button
@@ -104,7 +104,7 @@ export default function AdminPage() {
         <aside
           className={`
             fixed top-0 left-0 z-50 h-full w-64 bg-card border-r border-border flex flex-col transform transition-transform duration-200
-            md:static md:translate-x-0 md:flex md:h-auto md:min-h-full md:w-56 md:shrink-0
+            md:sticky md:top-14 md:h-[calc(100vh-3.5rem)] md:overflow-y-auto md:translate-x-0 md:flex md:w-56 md:shrink-0 md:self-start
             ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
           `}
         >

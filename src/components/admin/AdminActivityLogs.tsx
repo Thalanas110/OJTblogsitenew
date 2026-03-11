@@ -5,7 +5,7 @@ import { ChevronLeft, ChevronRight, Download } from "lucide-react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 13;
 
 export default function AdminActivityLogs() {
   const { data: logs, isLoading } = useActivityLogs();
