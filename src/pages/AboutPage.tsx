@@ -31,6 +31,23 @@ export default function AboutPage() {
 
               <hr className="border-border mb-6" />
 
+              {/* Site Notice */}
+              <section className="mb-8 p-4 rounded-lg border border-primary/30 bg-primary/5">
+                <p className="text-sm text-card-foreground font-mono leading-relaxed">
+                  <span className="font-bold text-primary">📌 You are on the new version of this blogsite.</span>{" "}
+                  The old version is still available at{" "}
+                  <a
+                    href="https://oldpracticumoneblogsite.vercel.app/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary font-semibold hover:underline"
+                  >
+                    oldpracticumoneblogsite.vercel.app
+                  </a>
+                  .
+                </p>
+              </section>
+
               {/* Welcome */}
               <section className="mb-8">
                 <h2 className="font-mono text-lg font-bold text-card-foreground mb-3 flex items-center gap-2">
