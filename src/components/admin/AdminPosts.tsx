@@ -3,8 +3,9 @@ import { useAllPosts, useDeletePost, useTogglePin, useCreatePost, useUpdatePost 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Pin, PinOff, Trash2, Edit, Plus, Eye, MessageSquare, Heart, BarChart3, X } from "lucide-react";
+import { Pin, PinOff, Trash2, Edit, Plus, Eye, MessageSquare, Heart, BarChart3 } from "lucide-react";
 import PostDashboard from "@/components/admin/PostDashboard";
 
 export default function AdminPosts() {
@@ -60,28 +61,29 @@ export default function AdminPosts() {
         </Button>
       </div>
 
-      {(showCreate || editingId) && (
-        <div className="bg-card rounded-lg border border-border p-6 space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="font-mono font-bold text-card-foreground">{editingId ? "Edit Post" : "New Post"}</h3>
-            <button onClick={resetForm} className="text-muted-foreground hover:text-foreground"><X size={18} /></button>
+      <Dialog open={showCreate || !!editingId} onOpenChange={(open) => { if (!open) resetForm(); }}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="font-mono">{editingId ? "Edit Post" : "New Post"}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <Input placeholder="Title" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className="font-mono text-sm" />
+            <Input placeholder="Cover image URL (optional)" value={form.cover_image_url} onChange={(e) => setForm({ ...form, cover_image_url: e.target.value })} className="font-mono text-sm" />
+            <Input placeholder="YouTube URL (optional, e.g. https://youtu.be/VIDEO_ID)" value={form.youtube_url} onChange={(e) => setForm({ ...form, youtube_url: e.target.value })} className="font-mono text-sm" />
+            <Textarea placeholder="Excerpt (short preview)" value={form.excerpt} onChange={(e) => setForm({ ...form, excerpt: e.target.value })} rows={2} className="font-mono text-sm" />
+            <Textarea placeholder="Content" value={form.content} onChange={(e) => setForm({ ...form, content: e.target.value })} rows={10} className="font-mono text-sm" />
+            <div className="flex items-center gap-4">
+              <label className="flex items-center gap-2 font-mono text-sm text-card-foreground">
+                <input type="checkbox" checked={form.is_published} onChange={(e) => setForm({ ...form, is_published: e.target.checked })} />
+                Published
+              </label>
+              <Button onClick={editingId ? handleUpdate : handleCreate} disabled={createPost.isPending || updatePost.isPending} className="font-mono text-sm">
+                {editingId ? "Update" : "Create"}
+              </Button>
+            </div>
           </div>
-          <Input placeholder="Title" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className="font-mono text-sm" />
-          <Input placeholder="Cover image URL (optional)" value={form.cover_image_url} onChange={(e) => setForm({ ...form, cover_image_url: e.target.value })} className="font-mono text-sm" />
-          <Input placeholder="YouTube URL (optional, e.g. https://youtu.be/VIDEO_ID)" value={form.youtube_url} onChange={(e) => setForm({ ...form, youtube_url: e.target.value })} className="font-mono text-sm" />
-          <Textarea placeholder="Excerpt (short preview)" value={form.excerpt} onChange={(e) => setForm({ ...form, excerpt: e.target.value })} rows={2} className="font-mono text-sm" />
-          <Textarea placeholder="Content" value={form.content} onChange={(e) => setForm({ ...form, content: e.target.value })} rows={10} className="font-mono text-sm" />
-          <div className="flex items-center gap-4">
-            <label className="flex items-center gap-2 font-mono text-sm text-card-foreground">
-              <input type="checkbox" checked={form.is_published} onChange={(e) => setForm({ ...form, is_published: e.target.checked })} />
-              Published
-            </label>
-            <Button onClick={editingId ? handleUpdate : handleCreate} disabled={createPost.isPending || updatePost.isPending} className="font-mono text-sm">
-              {editingId ? "Update" : "Create"}
-            </Button>
-          </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
 
       {isLoading ? (
         <p className="text-muted-foreground font-mono text-sm">Loading...</p>
