@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Eye, MessageSquare } from "lucide-react";
+import { Eye, MessageSquare, Youtube } from "lucide-react";
 import type { PostWithStats } from "@/types/blog";
 
 interface PostCardProps {
@@ -11,9 +11,14 @@ export default function PostCard({ post }: PostCardProps) {
     <div className="blog-card flex flex-col">
       {/* Title section */}
       <div className="p-4 pb-2">
-        <h2 className="font-mono text-base md:text-lg font-bold text-card-foreground leading-tight">
-          {post.title}
-        </h2>
+        <div className="flex items-start gap-2">
+          {post.youtube_url && (
+            <Youtube size={16} className="text-red-500 flex-shrink-0 mt-1" />
+          )}
+          <h2 className="font-mono text-base md:text-lg font-bold text-card-foreground leading-tight">
+            {post.title}
+          </h2>
+        </div>
         <div className="flex items-center justify-between mt-2">
           <span className="text-xs font-mono text-muted-foreground">
             {new Date(post.created_at).toLocaleDateString("en-US", {

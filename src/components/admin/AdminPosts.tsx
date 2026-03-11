@@ -17,10 +17,10 @@ export default function AdminPosts() {
   const [showCreate, setShowCreate] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [viewDashboard, setViewDashboard] = useState<string | null>(null);
-  const [form, setForm] = useState({ title: "", content: "", excerpt: "", cover_image_url: "", is_published: true });
+  const [form, setForm] = useState({ title: "", content: "", excerpt: "", cover_image_url: "", youtube_url: "", is_published: true });
 
   const resetForm = () => {
-    setForm({ title: "", content: "", excerpt: "", cover_image_url: "", is_published: true });
+    setForm({ title: "", content: "", excerpt: "", cover_image_url: "", youtube_url: "", is_published: true });
     setShowCreate(false);
     setEditingId(null);
   };
@@ -28,7 +28,7 @@ export default function AdminPosts() {
   const handleCreate = () => {
     if (!form.title.trim() || !form.content.trim()) { toast.error("Title and content required"); return; }
     createPost.mutate(
-      { title: form.title, content: form.content, excerpt: form.excerpt || form.content.slice(0, 150), cover_image_url: form.cover_image_url || undefined, is_published: form.is_published },
+      { title: form.title, content: form.content, excerpt: form.excerpt || form.content.slice(0, 150), cover_image_url: form.cover_image_url || undefined, youtube_url: form.youtube_url || undefined, is_published: form.is_published },
       { onSuccess: () => { resetForm(); toast.success("Post created!"); }, onError: () => toast.error("Failed") }
     );
   };
@@ -36,14 +36,14 @@ export default function AdminPosts() {
   const handleUpdate = () => {
     if (!editingId) return;
     updatePost.mutate(
-      { id: editingId, updates: { title: form.title, content: form.content, excerpt: form.excerpt, cover_image_url: form.cover_image_url || null, is_published: form.is_published } },
+      { id: editingId, updates: { title: form.title, content: form.content, excerpt: form.excerpt, cover_image_url: form.cover_image_url || null, youtube_url: form.youtube_url || null, is_published: form.is_published } },
       { onSuccess: () => { resetForm(); toast.success("Post updated!"); }, onError: () => toast.error("Failed") }
     );
   };
 
   const startEdit = (post: { id: string; title: string; content: string; excerpt: string; cover_image_url: string | null; is_published: boolean }) => {
     setEditingId(post.id);
-    setForm({ title: post.title, content: post.content, excerpt: post.excerpt, cover_image_url: post.cover_image_url || "", is_published: post.is_published });
+    setForm({ title: post.title, content: post.content, excerpt: post.excerpt, cover_image_url: post.cover_image_url || "", youtube_url: (post as { youtube_url?: string | null }).youtube_url || "", is_published: post.is_published });
     setShowCreate(false);
   };
 
@@ -68,6 +68,7 @@ export default function AdminPosts() {
           </div>
           <Input placeholder="Title" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className="font-mono text-sm" />
           <Input placeholder="Cover image URL (optional)" value={form.cover_image_url} onChange={(e) => setForm({ ...form, cover_image_url: e.target.value })} className="font-mono text-sm" />
+          <Input placeholder="YouTube URL (optional, e.g. https://youtu.be/VIDEO_ID)" value={form.youtube_url} onChange={(e) => setForm({ ...form, youtube_url: e.target.value })} className="font-mono text-sm" />
           <Textarea placeholder="Excerpt (short preview)" value={form.excerpt} onChange={(e) => setForm({ ...form, excerpt: e.target.value })} rows={2} className="font-mono text-sm" />
           <Textarea placeholder="Content" value={form.content} onChange={(e) => setForm({ ...form, content: e.target.value })} rows={10} className="font-mono text-sm" />
           <div className="flex items-center gap-4">

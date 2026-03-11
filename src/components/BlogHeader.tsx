@@ -15,7 +15,7 @@ export default function BlogHeader() {
         <Link to="/" className="flex items-center gap-2">
           <span className="text-primary text-2xl">🩺</span>
           <h1 className="font-mono text-lg md:text-xl font-bold text-foreground tracking-tight">
-            OJT Blog
+            CSP131 | Adriaan Dimate's Blog
           </h1>
         </Link>
 

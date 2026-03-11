@@ -116,6 +116,7 @@ export type Database = {
           author_id: string | null
           content: string
           cover_image_url: string | null
+          youtube_url: string | null
           created_at: string
           excerpt: string
           id: string
@@ -129,6 +130,7 @@ export type Database = {
           author_id?: string | null
           content?: string
           cover_image_url?: string | null
+          youtube_url?: string | null
           created_at?: string
           excerpt?: string
           id?: string
@@ -142,6 +144,7 @@ export type Database = {
           author_id?: string | null
           content?: string
           cover_image_url?: string | null
+          youtube_url?: string | null
           created_at?: string
           excerpt?: string
           id?: string

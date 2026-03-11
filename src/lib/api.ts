@@ -145,7 +145,7 @@ export async function fetchPostById(id: string): Promise<PostWithStats | null> {
   };
 }
 
-export async function createPost(post: { title: string; content: string; excerpt: string; cover_image_url?: string; is_published?: boolean }) {
+export async function createPost(post: { title: string; content: string; excerpt: string; cover_image_url?: string; youtube_url?: string; is_published?: boolean }) {
   const slug = post.title.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-');
   const { data, error } = await supabase
     .from("posts")

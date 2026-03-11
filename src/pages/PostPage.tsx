@@ -4,7 +4,32 @@ import { usePostBySlug, useRecordView } from "@/hooks/useBlog";
 import BlogHeader from "@/components/BlogHeader";
 import CommentSection from "@/components/CommentSection";
 import LikeButton from "@/components/LikeButton";
-import { Eye } from "lucide-react";
+import { Eye, Youtube } from "lucide-react";
+
+function getYouTubeEmbedUrl(url: string): string | null {
+  try {
+    const u = new URL(url);
+    // youtu.be/VIDEO_ID
+    if (u.hostname === "youtu.be") {
+      const id = u.pathname.slice(1).split("?")[0];
+      return id ? `https://www.youtube-nocookie.com/embed/${id}` : null;
+    }
+    // youtube.com/watch?v=VIDEO_ID
+    if (u.hostname === "www.youtube.com" || u.hostname === "youtube.com") {
+      if (u.pathname === "/watch") {
+        const id = u.searchParams.get("v");
+        return id ? `https://www.youtube-nocookie.com/embed/${id}` : null;
+      }
+      // youtube.com/embed/VIDEO_ID — swap to nocookie
+      if (u.pathname.startsWith("/embed/")) {
+        return url.replace("www.youtube.com", "www.youtube-nocookie.com");
+      }
+    }
+  } catch {
+    // invalid URL
+  }
+  return null;
+}
 
 export default function PostPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -82,6 +107,29 @@ export default function PostPage() {
                     alt={post.title}
                     className="w-full object-cover"
                   />
+                </div>
+              )}
+
+              {post.youtube_url && getYouTubeEmbedUrl(post.youtube_url) && (
+                <div className="mb-6">
+                  <div className="rounded-lg overflow-hidden aspect-video">
+                    <iframe
+                      src={`${getYouTubeEmbedUrl(post.youtube_url)!}?rel=0&modestbranding=1`}
+                      title={post.title}
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                      referrerPolicy="strict-origin-when-cross-origin"
+                      allowFullScreen
+                      className="w-full h-full border-0"
+                    />
+                  </div>
+                  <a
+                    href={post.youtube_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 mt-2 text-xs font-mono text-muted-foreground hover:text-red-500 transition-colors"
+                  >
+                    <Youtube size={13} /> Watch on YouTube
+                  </a>
                 </div>
               )}
 

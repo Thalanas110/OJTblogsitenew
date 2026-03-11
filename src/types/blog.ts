@@ -5,6 +5,7 @@ export interface Post {
   content: string;
   excerpt: string;
   cover_image_url: string | null;
+  youtube_url: string | null;
   is_pinned: boolean;
   is_published: boolean;
   author_id: string | null;
