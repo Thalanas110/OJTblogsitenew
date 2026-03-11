@@ -74,7 +74,6 @@ export default function AdminDashboard({ posts, comments, logs }: Props) {
                   fontSize: 12,
                 }}
               />
-              <Legend wrapperStyle={{ fontSize: 12, fontFamily: "monospace", paddingTop: 8 }} />
               <Bar dataKey="Views" fill="hsl(var(--primary))" radius={[3, 3, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
