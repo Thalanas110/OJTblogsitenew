@@ -2,8 +2,12 @@ import { useEffect, useState } from "react";
 
 const LoadingScreen = () => {
   const [dots, setDots] = useState("");
+  const [visible, setVisible] = useState(false);
 
   useEffect(() => {
+    // Fade in effect
+    setVisible(true);
+    
     const interval = setInterval(() => {
       setDots((prev) => (prev.length >= 3 ? "" : prev + "."));
     }, 500);
@@ -11,7 +15,12 @@ const LoadingScreen = () => {
   }, []);
 
   return (
-    <div className="fixed inset-0 bg-background flex items-center justify-center z-50">
+    <div 
+      className={`fixed inset-0 bg-background flex items-center justify-center z-[9999] transition-opacity duration-300 ${
+        visible ? 'opacity-100' : 'opacity-0'
+      }`}
+      style={{ pointerEvents: 'all' }}
+    >
       <div className="flex flex-col items-center gap-6">
         {/* Animated Logo/Spinner */}
         <div className="relative">

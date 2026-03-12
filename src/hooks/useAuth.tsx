@@ -20,10 +20,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const startTime = Date.now();
+    const MIN_LOADING_TIME = 800; // Minimum time to show loading screen (ms)
+
     getSession().then((s) => {
       setIsAuthenticated(!!s);
-      setLoading(false);
+      
+      // Ensure loading screen shows for at least MIN_LOADING_TIME
+      const elapsedTime = Date.now() - startTime;
+      const remainingTime = Math.max(0, MIN_LOADING_TIME - elapsedTime);
+      
+      setTimeout(() => {
+        setLoading(false);
+      }, remainingTime);
     });
+
     const { data } = onAuthChange((session) => {
       setIsAuthenticated(!!session);
     });
