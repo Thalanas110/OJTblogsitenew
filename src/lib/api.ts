@@ -1,18 +1,20 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { Post, Comment, Reaction, ActivityLog, PostWithStats } from "@/types/blog";
 
-// ─── IP helper ───
-let cachedIp: string | null = null;
-export async function getClientIp(): Promise<string> {
-  if (cachedIp) return cachedIp;
-  try {
-    const res = await fetch("https://api.ipify.org?format=json");
-    const data = await res.json();
-    cachedIp = data.ip;
-    return data.ip;
-  } catch {
-    return "0.0.0.0";
+// ─── Session ID helper (replaced IP with secure session ID) ───
+let cachedSessionId: string | null = null;
+
+export function getOrCreateSessionId(): string {
+  if (cachedSessionId) return cachedSessionId;
+  
+  let sessionId = localStorage.getItem('blog_session_id');
+  if (!sessionId) {
+    // Create a unique session ID for this browser
+    sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    localStorage.setItem('blog_session_id', sessionId);
   }
+  cachedSessionId = sessionId;
+  return sessionId;
 }
 
 // ─── Posts ───
@@ -187,19 +189,18 @@ export async function togglePinPost(id: string, isPinned: boolean) {
 
 // ─── Views ───
 export async function recordView(postId: string) {
-  const ip = await getClientIp();
+  const sessionId = getOrCreateSessionId();
   await supabase.from("post_views").insert({
     post_id: postId,
-    ip_address: ip,
-    user_agent: navigator.userAgent,
+    ip_address: sessionId,
   });
 }
 
 export async function recordVideoPlay(postId: string) {
-  const ip = await getClientIp();
+  const sessionId = getOrCreateSessionId();
   await supabase.from("video_plays").insert({
     post_id: postId,
-    ip_address: ip,
+    ip_address: sessionId,
     user_agent: navigator.userAgent,
   });
 }
@@ -289,10 +290,10 @@ export async function fetchAllComments(): Promise<(Comment & { post_title?: stri
 }
 
 export async function addComment(postId: string, authorName: string, content: string) {
-  const ip = await getClientIp();
+  const sessionId = getOrCreateSessionId();
   const { data, error } = await supabase
     .from("comments")
-    .insert({ post_id: postId, author_name: authorName, content, ip_address: ip })
+    .insert({ post_id: postId, author_name: authorName, content, ip_address: sessionId })
     .select()
     .single();
   if (error) throw error;
@@ -321,43 +322,42 @@ export async function fetchReactionCount(postId: string): Promise<number> {
 }
 
 export async function hasUserReacted(postId: string): Promise<boolean> {
-  const ip = await getClientIp();
+  const sessionId = getOrCreateSessionId();
   const { data, error } = await supabase
     .from("reactions")
     .select("id")
     .eq("post_id", postId)
-    .eq("ip_address", ip)
+    .eq("ip_address", sessionId)
     .maybeSingle();
   if (error) throw error;
   return !!data;
 }
 
 export async function toggleReaction(postId: string) {
-  const ip = await getClientIp();
+  const sessionId = getOrCreateSessionId();
   const { data: existing } = await supabase
     .from("reactions")
     .select("id")
     .eq("post_id", postId)
-    .eq("ip_address", ip)
+    .eq("ip_address", sessionId)
     .maybeSingle();
 
   if (existing) {
     await supabase.from("reactions").delete().eq("id", existing.id);
   } else {
-    await supabase.from("reactions").insert({ post_id: postId, ip_address: ip, reaction_type: "like" });
+    await supabase.from("reactions").insert({ post_id: postId, ip_address: sessionId, reaction_type: "like" });
   }
 }
 
 // ─── Activity Logs ───
 export async function logActivity(action: string, entityType: string, entityId: string | null, details: Record<string, unknown>) {
-  let ip: string | null = null;
-  try { ip = await getClientIp(); } catch { /* noop */ }
+  const sessionId = getOrCreateSessionId();
   await supabase.from("activity_logs").insert({
     action,
     entity_type: entityType,
     entity_id: entityId,
     details: details as unknown,
-    ip_address: ip,
+    ip_address: sessionId,
   } as never);
 }
 
