@@ -14,20 +14,29 @@ CREATE POLICY "Only admins can see admin users"
   ON public.admin_users FOR SELECT
   USING (auth.uid() IN (SELECT user_id FROM public.admin_users));
 
--- 2. Fix Posts RLS policies - only author can edit/delete
+-- 2. Fix Posts RLS policies - allow public read of published, authenticated for write
 DROP POLICY IF EXISTS "Authenticated users can manage posts" ON public.posts;
 DROP POLICY IF EXISTS "Anyone can read published posts" ON public.posts;
+DROP POLICY IF EXISTS "Admin can read all posts" ON public.posts;
+DROP POLICY IF EXISTS "Authors can create posts" ON public.posts;
+DROP POLICY IF EXISTS "Authors can update own posts" ON public.posts;
+DROP POLICY IF EXISTS "Authors can delete own posts" ON public.posts;
 
 CREATE POLICY "Anyone can read published posts"
   ON public.posts FOR SELECT
-  USING (is_published = true OR auth.uid() = author_id);
+  USING (is_published = true);
 
-CREATE POLICY "Admin can read all posts"
+CREATE POLICY "Authors can see own unpublished posts"
+  ON public.posts FOR SELECT
+  TO authenticated
+  USING (auth.uid() = author_id);
+
+CREATE POLICY "Admins can see all posts"
   ON public.posts FOR SELECT
   TO authenticated
   USING (auth.uid() IN (SELECT user_id FROM public.admin_users));
 
-CREATE POLICY "Authors can create posts"
+CREATE POLICY "Authenticated users can create posts"
   ON public.posts FOR INSERT
   TO authenticated
   WITH CHECK (auth.uid() = author_id);
@@ -35,107 +44,83 @@ CREATE POLICY "Authors can create posts"
 CREATE POLICY "Authors can update own posts"
   ON public.posts FOR UPDATE
   TO authenticated
-  USING (auth.uid() = author_id OR auth.uid() IN (SELECT user_id FROM public.admin_users))
-  WITH CHECK (auth.uid() = author_id OR auth.uid() IN (SELECT user_id FROM public.admin_users));
+  USING (auth.uid() = author_id)
+  WITH CHECK (auth.uid() = author_id);
+
+CREATE POLICY "Admins can update any post"
+  ON public.posts FOR UPDATE
+  TO authenticated
+  USING (auth.uid() IN (SELECT user_id FROM public.admin_users));
 
 CREATE POLICY "Authors can delete own posts"
   ON public.posts FOR DELETE
   TO authenticated
-  USING (auth.uid() = author_id OR auth.uid() IN (SELECT user_id FROM public.admin_users));
+  USING (auth.uid() = author_id);
+
+CREATE POLICY "Admins can delete any post"
+  ON public.posts FOR DELETE
+  TO authenticated
+  USING (auth.uid() IN (SELECT user_id FROM public.admin_users));
 
 -- 3. Fix Comments RLS policies
 DROP POLICY IF EXISTS "Anyone can read approved comments" ON public.comments;
-DROP POLICY IF EXISTS "Anyone can insert comments" ON public.comments;
-DROP POLICY IF EXISTS "Authenticated can manage comments" ON public.comments;
+DROP POLICY IF EXISTS "Authenticated can read all comments" ON public.comments;
+DROP POLICY IF EXISTS "Insert comments with rate limiting" ON public.comments;
+DROP POLICY IF EXISTS "Authors can delete own comments" ON public.comments;
 
 CREATE POLICY "Anyone can read approved comments"
   ON public.comments FOR SELECT
   USING (is_approved = true);
 
-CREATE POLICY "Authenticated can read all comments"
+CREATE POLICY "Authenticated can see all comments"
   ON public.comments FOR SELECT
   TO authenticated
   USING (true);
 
-CREATE POLICY "Insert comments with rate limiting"
+CREATE POLICY "Anyone can insert comments"
   ON public.comments FOR INSERT
-  WITH CHECK (
-    -- Check if user has not exceeded rate limit (3 comments per hour per IP)
-    (SELECT COUNT(*) FROM public.comments 
-     WHERE ip_address = current_setting('request.headers', true)::json->>'x-forwarded-for'
-     AND created_at > now() - interval '1 hour') < 3
-  );
+  WITH CHECK (true);
 
 CREATE POLICY "Authors can delete own comments"
+  ON public.comments FOR DELETE
+  USING (auth.uid()::text = author_id);
+
+CREATE POLICY "Admins can delete any comment"
   ON public.comments FOR DELETE
   TO authenticated
   USING (auth.uid() IN (SELECT user_id FROM public.admin_users));
 
--- 4. Fix Reactions RLS policies - one reaction per user per post
+-- 4. Fix Reactions RLS policies
 DROP POLICY IF EXISTS "Anyone can read reactions" ON public.reactions;
-DROP POLICY IF EXISTS "Anyone can insert reactions" ON public.reactions;
-DROP POLICY IF EXISTS "Anyone can delete own reactions" ON public.reactions;
-DROP POLICY IF EXISTS "Users can delete own reactions by IP" ON public.reactions;
+DROP POLICY IF EXISTS "Insert reactions with rate limiting" ON public.reactions;
+DROP POLICY IF EXISTS "Users can delete own reactions" ON public.reactions;
 
 CREATE POLICY "Anyone can read reactions"
   ON public.reactions FOR SELECT
   USING (true);
 
-CREATE POLICY "Insert reactions with rate limiting"
+CREATE POLICY "Anyone can insert reactions"
   ON public.reactions FOR INSERT
-  WITH CHECK (
-    -- Check if user hasn't reacted to this post in last 10 seconds (prevent spam)
-    NOT EXISTS (
-      SELECT 1 FROM public.reactions r
-      WHERE r.post_id = post_id
-      AND r.ip_address = current_setting('request.headers', true)::json->>'x-forwarded-for'
-      AND r.created_at > now() - interval '10 seconds'
-    )
-  );
+  WITH CHECK (true);
 
 CREATE POLICY "Users can delete own reactions"
   ON public.reactions FOR DELETE
-  USING (ip_address = current_setting('request.headers', true)::json->>'x-forwarded-for');
+  USING (user_id::text = auth.uid()::text OR ip_address = current_setting('request.client_addr'));
 
 -- 5. Fix Activity Logs RLS policies
-DROP POLICY IF EXISTS "Anyone can insert logs" ON public.activity_logs;
-DROP POLICY IF EXISTS "Authenticated can read logs" ON public.activity_logs;
+DROP POLICY IF EXISTS "System can insert logs" ON public.activity_logs;
+DROP POLICY IF EXISTS "Only admins can read activity logs" ON public.activity_logs;
 
-CREATE POLICY "System can insert logs"
+CREATE POLICY "System can insert activity logs"
   ON public.activity_logs FOR INSERT
   WITH CHECK (true);
 
-CREATE POLICY "Only admins can read activity logs"
+CREATE POLICY "Admins can read activity logs"
   ON public.activity_logs FOR SELECT
   TO authenticated
   USING (auth.uid() IN (SELECT user_id FROM public.admin_users));
 
--- 6. Create rate limiting check function
-CREATE OR REPLACE FUNCTION public.check_comment_rate_limit(p_ip_address TEXT)
-RETURNS BOOLEAN AS $$
-BEGIN
-  RETURN (
-    SELECT COUNT(*) FROM public.comments
-    WHERE ip_address = p_ip_address
-    AND created_at > now() - interval '1 hour'
-  ) < 3;
-END;
-$$ LANGUAGE plpgsql STABLE;
-
--- 7. Create rate limiting check for reactions
-CREATE OR REPLACE FUNCTION public.check_reaction_rate_limit(p_post_id UUID, p_ip_address TEXT)
-RETURNS BOOLEAN AS $$
-BEGIN
-  RETURN NOT EXISTS (
-    SELECT 1 FROM public.reactions
-    WHERE post_id = p_post_id
-    AND ip_address = p_ip_address
-    AND created_at > now() - interval '10 seconds'
-  );
-END;
-$$ LANGUAGE plpgsql STABLE;
-
--- 8. Create input validation function
+-- 6. Create input validation function
 CREATE OR REPLACE FUNCTION public.validate_comment_input(p_author_name TEXT, p_content TEXT)
 RETURNS BOOLEAN AS $$
 BEGIN
@@ -154,7 +139,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql STABLE;
 
--- 9. Create post validation function
+-- 7. Create post validation function
 CREATE OR REPLACE FUNCTION public.validate_post_input(p_title TEXT, p_content TEXT, p_excerpt TEXT)
 RETURNS BOOLEAN AS $$
 BEGIN
@@ -174,14 +159,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql STABLE;
 
--- 10. Revoke public insert on post_views (use function instead)
-DROP POLICY IF EXISTS "Anyone can insert views" ON public.post_views;
-
-CREATE POLICY "Insert views via function only"
-  ON public.post_views FOR INSERT
-  WITH CHECK (true);
-
--- 11. Create function to safely record views
+-- 8. Create function to record post views with rate limiting
 CREATE OR REPLACE FUNCTION public.record_post_view(p_post_id UUID, p_ip_address TEXT, p_user_agent TEXT)
 RETURNS UUID AS $$
 DECLARE
@@ -194,8 +172,8 @@ BEGIN
     AND ip_address = p_ip_address
     AND created_at > now() - interval '1 minute'
   ) THEN
-    INSERT INTO public.post_views (post_id, ip_address)
-    VALUES (p_post_id, p_ip_address)
+    INSERT INTO public.post_views (post_id, ip_address, user_agent)
+    VALUES (p_post_id, p_ip_address, p_user_agent)
     RETURNING id INTO v_id;
     RETURN v_id;
   END IF;
@@ -203,7 +181,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- 12. Create function to safely record video plays
+-- 9. Create function to record video plays with rate limiting
 CREATE OR REPLACE FUNCTION public.record_video_play(p_post_id UUID, p_ip_address TEXT, p_user_agent TEXT)
 RETURNS UUID AS $$
 DECLARE
@@ -225,7 +203,21 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- 13. Add NOT NULL constraints where missing
+-- 10. Allow inserts to post_views and video_plays tables
+DROP POLICY IF EXISTS "Insert views via function only" ON public.post_views;
+DROP POLICY IF EXISTS "Anyone can insert views" ON public.post_views;
+
+CREATE POLICY "Anyone can insert views"
+  ON public.post_views FOR INSERT
+  WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Anyone can insert plays" ON public.video_plays;
+
+CREATE POLICY "Anyone can insert plays"
+  ON public.video_plays FOR INSERT
+  WITH CHECK (true);
+
+-- 11. Ensure NOT NULL constraints exist
 ALTER TABLE public.post_views
 ALTER COLUMN ip_address SET NOT NULL;
 
